@@ -59,7 +59,10 @@ function App() {
     <div className="min-h-screen bg-slate-900 text-white">
       <header className="bg-slate-800 border-b border-slate-700 px-6 py-4">
         <div className="max-w-7xl mx-auto flex items-center justify-between">
-          <h1 className="text-2xl font-bold">Chess Openings Trainer</h1>
+          <div>
+            <h1 className="text-2xl font-bold">Chess Openings Trainer</h1>
+            <p className="text-sm text-slate-400">By Gabe Slade</p>
+          </div>
           <nav className="flex gap-2">
             <button
               onClick={() => setMode('explore')}
