@@ -16,13 +16,39 @@ export interface OpeningRoot {
   children: OpeningNode[]   // First moves (1.e4, 1.d4, etc.)
 }
 
-// Flattened opening for display in lists
+// Flattened opening for display in lists (legacy)
 export interface Opening {
   name: string
   eco: string
   moves: string[]           // Array of moves to reach this opening
   fen: string               // Final position FEN
   explanation?: string
+  family?: string           // Parent opening family name
+}
+
+// Opening family - groups related variations together
+export interface OpeningFamily {
+  name: string              // "London System", "Sicilian Defense", etc.
+  eco: string               // Primary ECO code
+  description: string       // General description of the opening
+  defaultColor: 'white' | 'black'  // Which color typically plays this opening
+  variations: OpeningVariation[]
+}
+
+// A specific variation within a family
+export interface OpeningVariation {
+  name: string              // "Main Line", "Anti-London with ...Bf5", etc.
+  moves: string[]           // Full move sequence
+  explanation?: string
+}
+
+// Tree node for practice mode - built from variations
+export interface PracticeTreeNode {
+  fen: string
+  moves: Map<string, PracticeTreeNode>  // move -> child node
+  isEndOfLine?: boolean
+  explanation?: string
+  variationName?: string    // Which variation this belongs to
 }
 
 // User progress tracking

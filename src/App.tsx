@@ -1,29 +1,59 @@
-import { useState } from 'react'
+import { useState, useEffect, useCallback } from 'react'
+import type { Square } from 'chess.js'
 import ChessBoard from './components/Board/ChessBoard'
 import OpeningExplorer from './components/OpeningExplorer/OpeningExplorer'
 import PracticeMode from './components/PracticeMode/PracticeMode'
 import { useChessGame } from './hooks/useChessGame'
-import type { Opening } from './types'
+import type { OpeningFamily } from './types'
 
 type Mode = 'explore' | 'practice'
+type PlayerColor = 'white' | 'black'
 
 function App() {
   const [mode, setMode] = useState<Mode>('explore')
-  const [selectedOpening, setSelectedOpening] = useState<Opening | null>(null)
+  const [selectedFamily, setSelectedFamily] = useState<OpeningFamily | null>(null)
+  const [playerColor, setPlayerColor] = useState<PlayerColor>('white')
+  const [hintSquares, setHintSquares] = useState<Square[]>([])
   const game = useChessGame()
 
-  const handleOpeningSelect = (opening: Opening) => {
-    setSelectedOpening(opening)
+  // Update player color when opening family changes (auto-select based on opening type)
+  useEffect(() => {
+    if (selectedFamily) {
+      setPlayerColor(selectedFamily.defaultColor)
+    }
+  }, [selectedFamily])
+
+  const handleFamilySelect = (family: OpeningFamily) => {
+    setSelectedFamily(family)
     game.reset()
-    // Play through the opening moves to show the position
-    opening.moves.forEach(move => game.makeMove(move))
+    // Play through the first variation to show a sample position
+    if (family.variations.length > 0) {
+      family.variations[0].moves.forEach(move => game.makeMove(move))
+    }
   }
 
-  const handleStartPractice = (opening: Opening) => {
-    setSelectedOpening(opening)
+  const handleStartPractice = (family: OpeningFamily) => {
+    setSelectedFamily(family)
+    setPlayerColor(family.defaultColor)
     setMode('practice')
     game.reset()
   }
+
+  const handleColorChange = (color: PlayerColor) => {
+    setPlayerColor(color)
+  }
+
+  const handleHintSquaresChange = useCallback((squares: Square[]) => {
+    setHintSquares(squares)
+  }, [])
+
+  // Clear hint squares when switching modes
+  useEffect(() => {
+    setHintSquares([])
+  }, [mode])
+
+  // Board orientation: in practice mode, show player's color on bottom
+  const boardOrientation = mode === 'practice' ? playerColor : 'white'
 
   return (
     <div className="min-h-screen bg-slate-900 text-white">
@@ -61,18 +91,17 @@ function App() {
             <ChessBoard
               position={game.fen}
               onMove={game.makeMove}
-              orientation="white"
+              orientation={boardOrientation}
+              highlightedSquares={mode === 'practice' ? hintSquares : []}
             />
-            {selectedOpening && (
+            {selectedFamily && mode === 'explore' && (
               <div className="mt-4 p-4 bg-slate-800 rounded-lg">
                 <h2 className="text-lg font-semibold text-blue-400">
-                  {selectedOpening.eco}: {selectedOpening.name}
+                  {selectedFamily.eco}: {selectedFamily.name}
                 </h2>
-                {selectedOpening.explanation && (
-                  <p className="mt-2 text-slate-300">{selectedOpening.explanation}</p>
-                )}
+                <p className="mt-2 text-slate-300">{selectedFamily.description}</p>
                 <p className="mt-2 text-sm text-slate-400">
-                  Moves: {selectedOpening.moves.join(' ')}
+                  {selectedFamily.variations.length} variations available
                 </p>
               </div>
             )}
@@ -81,15 +110,18 @@ function App() {
           <div className="lg:col-span-1">
             {mode === 'explore' ? (
               <OpeningExplorer
-                onSelect={handleOpeningSelect}
+                onSelectFamily={handleFamilySelect}
                 onStartPractice={handleStartPractice}
-                selectedOpening={selectedOpening}
+                selectedFamily={selectedFamily}
               />
             ) : (
               <PracticeMode
-                opening={selectedOpening}
+                openingFamily={selectedFamily}
                 game={game}
+                playerColor={playerColor}
+                onColorChange={handleColorChange}
                 onSelectOpening={() => setMode('explore')}
+                onHintSquaresChange={handleHintSquaresChange}
               />
             )}
           </div>

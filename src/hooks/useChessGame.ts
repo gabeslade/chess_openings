@@ -14,12 +14,19 @@ export interface ChessGameState {
   isDraw: boolean
 }
 
+export interface VerboseMove {
+  san: string
+  from: Square
+  to: Square
+}
+
 export interface ChessGameActions {
   makeMove: (move: string | { from: Square; to: Square; promotion?: string }) => boolean
   reset: () => void
   loadFen: (fen: string) => boolean
   undo: () => boolean
   getMoves: () => string[]
+  getVerboseMoves: () => VerboseMove[]
 }
 
 export type UseChessGameReturn = ChessGameState & ChessGameActions
@@ -73,6 +80,14 @@ export function useChessGame(initialFen: string = STARTING_FEN): UseChessGameRet
     return game.moves()
   }, [game])
 
+  const getVerboseMoves = useCallback((): VerboseMove[] => {
+    return game.moves({ verbose: true }).map(m => ({
+      san: m.san,
+      from: m.from,
+      to: m.to,
+    }))
+  }, [game])
+
   return {
     ...state,
     makeMove,
@@ -80,6 +95,7 @@ export function useChessGame(initialFen: string = STARTING_FEN): UseChessGameRet
     loadFen,
     undo,
     getMoves,
+    getVerboseMoves,
   }
 }
 

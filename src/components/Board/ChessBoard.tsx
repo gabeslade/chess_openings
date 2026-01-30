@@ -6,6 +6,7 @@ interface ChessBoardProps {
   onMove?: (move: string | { from: Square; to: Square; promotion?: string }) => boolean
   orientation?: 'white' | 'black'
   interactive?: boolean
+  highlightedSquares?: Square[]
 }
 
 export default function ChessBoard({
@@ -13,7 +14,17 @@ export default function ChessBoard({
   onMove,
   orientation = 'white',
   interactive = true,
+  highlightedSquares = [],
 }: ChessBoardProps) {
+  // Build custom styles for highlighted squares (hints)
+  const customSquareStyles: Record<string, React.CSSProperties> = {}
+  for (const square of highlightedSquares) {
+    customSquareStyles[square] = {
+      backgroundColor: 'rgba(255, 215, 0, 0.6)',
+      boxShadow: 'inset 0 0 8px 4px rgba(255, 180, 0, 0.8)',
+    }
+  }
+
   const handlePieceDrop = (sourceSquare: Square, targetSquare: Square) => {
     if (!onMove || !interactive) return false
 
@@ -34,6 +45,7 @@ export default function ChessBoard({
         onPieceDrop={handlePieceDrop}
         boardOrientation={orientation}
         arePiecesDraggable={interactive}
+        customSquareStyles={customSquareStyles}
         customBoardStyle={{
           borderRadius: '8px',
           boxShadow: '0 4px 20px rgba(0, 0, 0, 0.3)',

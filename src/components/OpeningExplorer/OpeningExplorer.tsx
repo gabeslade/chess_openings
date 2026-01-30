@@ -1,86 +1,34 @@
 import { useState, useMemo } from 'react'
-import { sampleOpenings, getOpeningsByEcoGroup, searchOpenings } from '../../data/openings/sampleOpenings'
-import type { Opening } from '../../types'
+import { openingFamilies } from '../../data/openings/openingFamilies'
+import type { OpeningFamily } from '../../types'
 
 interface OpeningExplorerProps {
-  onSelect: (opening: Opening) => void
-  onStartPractice: (opening: Opening) => void
-  selectedOpening: Opening | null
-}
-
-const ECO_GROUP_NAMES: Record<string, string> = {
-  'A': 'Flank Openings',
-  'B': 'Semi-Open Games',
-  'C': 'Open Games',
-  'D': 'Closed Games',
-  'E': 'Indian Defenses',
+  onSelectFamily: (family: OpeningFamily) => void
+  onStartPractice: (family: OpeningFamily) => void
+  selectedFamily: OpeningFamily | null
 }
 
 export default function OpeningExplorer({
-  onSelect,
+  onSelectFamily,
   onStartPractice,
-  selectedOpening,
+  selectedFamily,
 }: OpeningExplorerProps) {
   const [searchQuery, setSearchQuery] = useState('')
-  const [expandedGroups, setExpandedGroups] = useState<Set<string>>(new Set(['C', 'B']))
+  const [expandedFamily, setExpandedFamily] = useState<string | null>(null)
 
-  const openingsByGroup = useMemo(() => getOpeningsByEcoGroup(), [])
-
-  const filteredOpenings = useMemo(() => {
-    if (!searchQuery.trim()) return null
-    return searchOpenings(searchQuery)
+  const filteredFamilies = useMemo(() => {
+    if (!searchQuery.trim()) return openingFamilies
+    const query = searchQuery.toLowerCase()
+    return openingFamilies.filter(
+      family =>
+        family.name.toLowerCase().includes(query) ||
+        family.eco.toLowerCase().includes(query) ||
+        family.variations.some(v => v.name.toLowerCase().includes(query))
+    )
   }, [searchQuery])
 
-  const toggleGroup = (group: string) => {
-    setExpandedGroups(prev => {
-      const next = new Set(prev)
-      if (next.has(group)) {
-        next.delete(group)
-      } else {
-        next.add(group)
-      }
-      return next
-    })
-  }
-
-  const renderOpening = (opening: Opening) => {
-    const isSelected = selectedOpening?.name === opening.name
-    return (
-      <div
-        key={opening.name}
-        className={`p-3 rounded-lg cursor-pointer transition-colors ${
-          isSelected
-            ? 'bg-blue-600 text-white'
-            : 'bg-slate-700 hover:bg-slate-600'
-        }`}
-        onClick={() => onSelect(opening)}
-      >
-        <div className="flex items-center justify-between">
-          <div>
-            <span className="text-xs font-mono text-slate-400 mr-2">
-              {opening.eco}
-            </span>
-            <span className="font-medium">{opening.name}</span>
-          </div>
-          <button
-            onClick={(e) => {
-              e.stopPropagation()
-              onStartPractice(opening)
-            }}
-            className={`px-2 py-1 text-xs rounded transition-colors ${
-              isSelected
-                ? 'bg-blue-500 hover:bg-blue-400'
-                : 'bg-green-600 hover:bg-green-500'
-            }`}
-          >
-            Practice
-          </button>
-        </div>
-        <p className="text-xs text-slate-400 mt-1">
-          {opening.moves.join(' ')}
-        </p>
-      </div>
-    )
+  const toggleExpand = (familyName: string) => {
+    setExpandedFamily(prev => (prev === familyName ? null : familyName))
   }
 
   return (
@@ -98,43 +46,100 @@ export default function OpeningExplorer({
         />
       </div>
 
-      {/* Results */}
+      {/* Opening families list */}
       <div className="space-y-2 max-h-[500px] overflow-y-auto">
-        {filteredOpenings ? (
-          // Search results
-          filteredOpenings.length > 0 ? (
-            filteredOpenings.map(renderOpening)
-          ) : (
-            <p className="text-slate-400 text-center py-4">No openings found</p>
-          )
-        ) : (
-          // ECO grouped view
-          Object.entries(openingsByGroup).map(([group, openings]) => (
-            <div key={group}>
-              <button
-                onClick={() => toggleGroup(group)}
-                className="w-full flex items-center justify-between p-2 bg-slate-700 rounded-lg hover:bg-slate-600 transition-colors"
+        {filteredFamilies.map(family => {
+          const isSelected = selectedFamily?.name === family.name
+          const isExpanded = expandedFamily === family.name
+
+          return (
+            <div key={family.name} className="space-y-1">
+              {/* Family header */}
+              <div
+                className={`p-3 rounded-lg cursor-pointer transition-colors ${
+                  isSelected
+                    ? 'bg-blue-600 text-white'
+                    : 'bg-slate-700 hover:bg-slate-600'
+                }`}
+                onClick={() => onSelectFamily(family)}
               >
-                <span className="font-medium">
-                  {group}: {ECO_GROUP_NAMES[group]}
-                </span>
-                <span className="text-slate-400">
-                  {expandedGroups.has(group) ? '▼' : '▶'} ({openings.length})
-                </span>
-              </button>
-              {expandedGroups.has(group) && (
-                <div className="mt-2 ml-2 space-y-2">
-                  {openings.map(renderOpening)}
+                <div className="flex items-center justify-between gap-2">
+                  <div className="flex-1">
+                    <div className="flex items-center gap-2">
+                      <span className="text-xs font-mono text-slate-400">
+                        {family.eco}
+                      </span>
+                      <span className="font-medium">{family.name}</span>
+                    </div>
+                    <p className="text-xs text-slate-400 mt-1">
+                      {family.variations.length} variations
+                    </p>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <button
+                      onClick={(e) => {
+                        e.stopPropagation()
+                        onStartPractice(family)
+                      }}
+                      className={`px-3 py-1 text-sm rounded transition-colors ${
+                        isSelected
+                          ? 'bg-blue-500 hover:bg-blue-400'
+                          : 'bg-green-600 hover:bg-green-500'
+                      }`}
+                    >
+                      Practice
+                    </button>
+                    <button
+                      onClick={(e) => {
+                        e.stopPropagation()
+                        toggleExpand(family.name)
+                      }}
+                      className="text-slate-400 hover:text-white transition-colors px-1"
+                    >
+                      {isExpanded ? '▼' : '▶'}
+                    </button>
+                  </div>
+                </div>
+              </div>
+
+              {/* Expanded variations */}
+              {isExpanded && (
+                <div className="ml-4 space-y-1">
+                  <p className="text-xs text-slate-500 px-2 py-1">
+                    {family.description}
+                  </p>
+                  {family.variations.map(variation => (
+                    <div
+                      key={variation.name}
+                      className="p-2 bg-slate-750 rounded border-l-2 border-slate-600 text-sm"
+                    >
+                      <p className="font-medium text-slate-300">{variation.name}</p>
+                      <p className="text-xs text-slate-500 mt-1 font-mono">
+                        {variation.moves.slice(0, 10).join(' ')}
+                        {variation.moves.length > 10 ? '...' : ''}
+                      </p>
+                      {variation.explanation && (
+                        <p className="text-xs text-slate-400 mt-1 italic">
+                          {variation.explanation}
+                        </p>
+                      )}
+                    </div>
+                  ))}
                 </div>
               )}
             </div>
-          ))
+          )
+        })}
+
+        {filteredFamilies.length === 0 && (
+          <p className="text-slate-400 text-center py-4">No openings found</p>
         )}
       </div>
 
       <div className="mt-4 pt-4 border-t border-slate-700">
         <p className="text-sm text-slate-400">
-          {sampleOpenings.length} openings available
+          {openingFamilies.length} opening systems with{' '}
+          {openingFamilies.reduce((sum, f) => sum + f.variations.length, 0)} total variations
         </p>
       </div>
     </div>
