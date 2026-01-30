@@ -396,14 +396,19 @@ export const openingFamilies: OpeningFamily[] = [
 /**
  * Build a practice tree from an opening family
  * The tree allows multiple valid moves at each position
+ * If variationIndex is provided, only that variation is included
  */
-export function buildPracticeTree(family: OpeningFamily): PracticeTreeNode {
+export function buildPracticeTree(family: OpeningFamily, variationIndex?: number): PracticeTreeNode {
+  // If a specific variation is requested, only use that one
+  const variations = variationIndex !== undefined
+    ? [family.variations[variationIndex]]
+    : family.variations
   const root: PracticeTreeNode = {
     fen: 'rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1',
     moves: new Map(),
   }
 
-  for (const variation of family.variations) {
+  for (const variation of variations) {
     let currentNode = root
     const chess = new Chess()
 

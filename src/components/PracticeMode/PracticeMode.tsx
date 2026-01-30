@@ -35,17 +35,19 @@ export default function PracticeMode({
   const [showHint, setShowHint] = useState(false)
   const [stats, setStats] = useState({ correct: 0, mistakes: 0 })
   const [currentVariation, setCurrentVariation] = useState<string | null>(null)
+  // null = random (all variations), number = specific variation index
+  const [selectedVariationIndex, setSelectedVariationIndex] = useState<number | null>(null)
 
   // Track moves in the opening tree (might differ from game if player makes wrong move)
   const [treeMoves, setTreeMoves] = useState<string[]>([])
   // Flag to trigger computer move
   const [computerShouldMove, setComputerShouldMove] = useState(false)
 
-  // Build the practice tree when opening family changes
+  // Build the practice tree when opening family or selected variation changes
   const practiceTree = useMemo(() => {
     if (!openingFamily) return null
-    return buildPracticeTree(openingFamily)
-  }, [openingFamily])
+    return buildPracticeTree(openingFamily, selectedVariationIndex ?? undefined)
+  }, [openingFamily, selectedVariationIndex])
 
   // Determine if it's the player's turn
   const isPlayerTurn = useCallback((moveIndex: number) => {
@@ -53,9 +55,10 @@ export default function PracticeMode({
     return (playerColor === 'white') === isWhiteToMove
   }, [playerColor])
 
-  // Reset when opening changes
+  // Reset when opening changes (including resetting variation selection)
   useEffect(() => {
     if (openingFamily) {
+      setSelectedVariationIndex(null)
       resetPractice()
     }
   }, [openingFamily?.name])
@@ -75,6 +78,20 @@ export default function PracticeMode({
     setCurrentVariation(null)
     setComputerShouldMove(true) // Check if computer should move first
   }, [game])
+
+  // Handle variation selection change
+  const handleVariationChange = useCallback((index: number | null) => {
+    setSelectedVariationIndex(index)
+    // Reset practice when variation changes
+    game.reset()
+    setTreeMoves([])
+    setIsComplete(false)
+    setLastMoveCorrect(null)
+    setShowHint(false)
+    setStats({ correct: 0, mistakes: 0 })
+    setCurrentVariation(index !== null && openingFamily ? openingFamily.variations[index].name : null)
+    setComputerShouldMove(true)
+  }, [game, openingFamily])
 
   // Check if computer should make a move
   useEffect(() => {
@@ -277,6 +294,26 @@ export default function PracticeMode({
             )}
           </button>
         </div>
+      </div>
+
+      {/* Variation selection */}
+      <div className="mb-4">
+        <label className="text-sm text-slate-400 block mb-2">Variation:</label>
+        <select
+          value={selectedVariationIndex ?? 'random'}
+          onChange={(e) => {
+            const value = e.target.value
+            handleVariationChange(value === 'random' ? null : parseInt(value, 10))
+          }}
+          className="w-full py-2 px-3 bg-slate-700 text-slate-200 rounded-lg border border-slate-600 focus:border-blue-500 focus:outline-none"
+        >
+          <option value="random">Random (All Variations)</option>
+          {openingFamily.variations.map((variation, index) => (
+            <option key={index} value={index}>
+              {variation.name}
+            </option>
+          ))}
+        </select>
       </div>
 
       {/* Progress */}
